@@ -42,9 +42,9 @@ class EndpointFactory:
             #                 self._factory_generate(dynamic_type, instances)
             #                 continue
             self.endpoints.append({
-                'url': url,
+                'url': url.strip(),
                 'method': method,
-                'response': response
+                'response': json.dumps(json.loads(response))
             })
 
     # def _factory_generate(self, dynamic_type, instances):

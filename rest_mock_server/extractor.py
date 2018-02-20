@@ -6,7 +6,7 @@ the expected JSON responses
 import re
 
 import django
-from django import settings
+from django.conf import settings
 from django.core.exceptions import ViewDoesNotExist
 
 
@@ -49,18 +49,20 @@ class Extractor:
         self._urlconf = __import__(getattr(settings, 'ROOT_URLCONF'))
         self.url_details = []
         self._load_url_details()  # Load all urlpatterns & corresponding view classes/functions
-    
-    @staticmethod
-    def _get_view_details(urlpatterns, parent=''):
+
+    def _get_view_details(self, urlpatterns, parent=''):
         """Recursive function to extract all url details"""
         for pattern in urlpatterns:
-            if isinstance(pattern, (URLPattern, URLResolver)):
+            if isinstance(pattern, (URLPattern, RegexURLPattern)):
                 try:
                     d = describe_pattern(pattern)
                     full_url = parent + d
                     docstr = pattern.callback.__doc__
                     method = None
                     expected_json_response = ''
+
+                    if not docstr:
+                        continue
 
                     # Get expected URL
                     u = re.findall(r'URL: (.*)', docstr, flags=re.DOTALL)
@@ -70,24 +72,26 @@ class Extractor:
                         expected_url = ''
 
                     # Get all possible methods
+                    if 'view_class' not in dir(pattern.callback):
+                        continue
+
                     possible_methods = [m for m in dir(pattern.callback.view_class) if m in METHODS]
 
                     for method in possible_methods:
                         view_method_docstr = getattr(pattern.callback.view_class, method).__doc__
-                        # Extract request method and JSON response from docstring of request method
-                        j = re.findall(r'```(.*)```', view_method_docstr, flags=re.DOTALL)
-
-                        if j is not None:
-                            for match in j:
-                                expected_json_response = match[0].strip()
-
-                                # Only add the details if all 3 values are filled
-                                if method is not None and expected_json_response and expected_url:
-                                    self.url_details.append({
-                                        'url': expected_url,
-                                        'method': method,
-                                        'response': expected_json_response
-                                    })
+                        if view_method_docstr:
+                            # Extract request method and JSON response from docstring of request method
+                            j = re.findall(r'```(.*)```', view_method_docstr, flags=re.DOTALL)
+                            if j is not None:
+                                for match in j:
+                                    expected_json_response = match.strip()
+                                    # Only add the details if all 3 values are filled
+                                    if method is not None and expected_json_response and expected_url:
+                                        self.url_details.append({
+                                            'url': expected_url,
+                                            'method': method,
+                                            'response': expected_json_response
+                                        })
 
                 except ViewDoesNotExist:
                     pass
