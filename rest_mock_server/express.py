@@ -15,15 +15,15 @@ class ExpressServer:
         app.listen({port}, () => console.log("Django Rest Mock Server: Listening on port {port}"));\n
         """
         self.constructed = ''
-    
+
     def __str__(self):
         if self.constructed:
             return self.constructed.strip().replace("\n", "")
         raise Exception('Call construct() first')
-    
+
     def to_string(self):
         return str(self)
-    
+
     def construct(self, variables, functions, endpoints, port=8000):
         self.constructed = self.template.format(
             variables=variables,
@@ -31,11 +31,11 @@ class ExpressServer:
             endpoints=endpoints,
             port=port
         )
-    
+
     def generate(self, file_path='index.js'):
         with open(file_path, 'w') as f:
             f.write(self.to_string())
-    
+
     def start_server(self, file_path='index.js'):
         # Check if node is installed
         try:
