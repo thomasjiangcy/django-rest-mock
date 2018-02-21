@@ -56,7 +56,6 @@ class Extractor:
             if isinstance(pattern, (URLPattern, RegexURLPattern)):
                 try:
                     d = describe_pattern(pattern)
-                    full_url = parent + d
                     docstr = pattern.callback.__doc__
                     method = None
                     expected_json_response = ''
