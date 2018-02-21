@@ -23,6 +23,6 @@ def main(index_file):
     except KeyboardInterrupt:
         os.remove(index_file)
         path_prefix = os.getcwd()
-        os.remove(path_prefix + 'package-lock.json')
-        shutil.rmtree(path_prefix + 'node_modules')
+        os.remove(path_prefix + '/package-lock.json')
+        shutil.rmtree(path_prefix + '/node_modules')
         sys.stdout.write('Mock server shutdown.\n')
