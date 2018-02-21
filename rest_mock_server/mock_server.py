@@ -12,12 +12,12 @@ def main(index_file):
 
     # Check if Express is installed
     try:
-        express_exists = subprocess.check_output(['npm', 'list', '-g', 'express'])
+        subprocess.check_output(['npm', 'list', '-g', 'express'])
     except subprocess.CalledProcessError:
         sys.stdout.write('Express installation not found globally, checking local npm installation...')
 
         try:
-            express_exists = subprocess.check_output(['npm', 'list', 'express'])
+            subprocess.check_output(['npm', 'list', 'express'])
         except subprocess.CalledProcessError:
             sys.stdout.write('Express installation not found locally. Please ensure Express is installed')
             sys.exit(0)
