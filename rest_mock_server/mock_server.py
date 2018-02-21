@@ -1,30 +1,28 @@
 import os
+import shutil
 import subprocess
 import sys
 
 
 def main(index_file):
     # Check if node is installed
-    node_exists = subprocess.check_output(['node', '-v'])
-    if not node_exists:
-        sys.stdout.write('Node installation not found. Please install Node.js')
+    try:
+        subprocess.check_output(['node', '-v'])
+    except:
+        sys.stdout.write('Node.js not installed properly.\n')
         sys.exit(0)
 
     # Check if Express is installed
     try:
-        subprocess.check_output(['npm', 'list', '-g', 'express'])
-    except subprocess.CalledProcessError:
-        sys.stdout.write('Express installation not found globally, checking local npm installation...')
-
-        try:
-            subprocess.check_output(['npm', 'list', 'express'])
-        except subprocess.CalledProcessError:
-            sys.stdout.write('Express installation not found locally. Please ensure Express is installed')
-            sys.exit(0)
-
+        subprocess.check_output(['npm', 'list', 'express'])
+    except:
+        subprocess.call(['npm', 'install', 'express'])
 
     try:
         subprocess.call(["node", index_file])
     except KeyboardInterrupt:
         os.remove(index_file)
-        sys.stdout.write('Mock server shutdown.')
+        path_prefix = os.getcwd()
+        os.remove(path_prefix + 'package-lock.json')
+        shutil.rmtree(path_prefix + 'node_modules')
+        sys.stdout.write('Mock server shutdown.\n')
