@@ -7,7 +7,7 @@ README = open(os.path.join(here, 'README.rst')).read()
 
 setup(
     name='django-rest-mock',
-    version='0.1.7',
+    version='0.1.8',
     packages=find_packages(),
     description='Mock Express server generated based on your views, that can come in handy when developing REST APIs with Django',
     long_description=README,
