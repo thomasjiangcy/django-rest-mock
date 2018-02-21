@@ -17,6 +17,15 @@ Using pip::
     $ pip install django-rest-mock
 
 
+Then include `rest_mock_server` into your `INSTALLED_APPS`::
+
+    INSTALLED_APPS = (
+        ...
+        'rest_mock_server',
+        ...
+    )
+
+
 Usage
 =====
 
