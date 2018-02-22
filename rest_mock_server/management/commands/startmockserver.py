@@ -1,7 +1,6 @@
 from django.core.management.base import BaseCommand
 
-from rest_mock_server import generator
-from rest_mock_server import mock_server
+from rest_mock_server.builder import build
 
 
 class Command(BaseCommand):
@@ -17,8 +16,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         server_file = options.get('server_file')
 
-        if not server_file:
-            generator.main()
+        if server_file is None:
+            express = build()
             server_file = 'index.js'
 
-        mock_server.main(server_file)
+        express.start_server(file_path=server_file)

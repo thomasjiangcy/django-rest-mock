@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 
-from rest_mock_server import generator
+from rest_mock_server.builder import build
 
 
 class Command(BaseCommand):
@@ -20,6 +20,10 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         output = options.get('output_file')
-        port = options.get('port', 8000)
-
-        generator.main(output=output, port=port)
+        if output is None:
+            output = 'index.js'
+        port = options.get('port')
+        if port is None:
+            port = 8000
+        express = build(port)
+        express.generate(file_path=output)

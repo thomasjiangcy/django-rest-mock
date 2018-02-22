@@ -1,7 +1,33 @@
-"""
+'''
 Extracts all endpoints and their corresponding view docstrings to retrieve
-the expected JSON responses
-"""
+the expected JSON responses.
+
+Example
+=======
+
+Given a view::
+
+    class SomeView(APIView):
+        """
+        URL: /api/some/view/__key[id:int]?param1[int]&param2[str]
+        """
+
+        def get(self, request, *args, **kwargs):
+            """
+            ```
+            {
+                "__mockcount": 5,
+                "data": "Hello, world",
+                "id": "<sha256::10>"
+            }
+            ```
+            """
+            pass
+
+The Extractor can parse the docstrings of the view class and the request handler method.
+The query parameters and expected type should be parsed from the view class docstring.
+
+'''
 
 import re
 
@@ -61,6 +87,8 @@ class Extractor:
                     expected_json_response = ''
 
                     if not docstr:
+                        # Skip to the next url if this view doesn't have
+                        # any docstring attached to it
                         continue
 
                     # Get expected URL
@@ -94,6 +122,7 @@ class Extractor:
 
                 except ViewDoesNotExist:
                     pass
+
             elif isinstance(pattern, (URLResolver, RegexURLResolver)):
                 try:
                     patterns = pattern.url_patterns
@@ -103,7 +132,6 @@ class Extractor:
                 d = describe_pattern(pattern)
                 current_full_url = parent + d
                 self._get_view_details(patterns, current_full_url)
-
     
     def _load_url_details(self):
         root_urls = self._urlconf.urls.urlpatterns

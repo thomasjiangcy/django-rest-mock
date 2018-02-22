@@ -7,29 +7,32 @@ class ExpressServer:
 
     def __init__(self):
         self.template = """
-        const express = require("express");\n
-        const app = express();\n
-        {variables}\n
-        {functions}\n
-        {endpoints}\n
-        app.listen({port}, () => console.log("Django Rest Mock Server: Listening on port {port}"));\n
-        """
+const express = require("express");
+const bodyParser = require('body-parser');
+const app = express();
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+%s
+%s
+%s
+app.listen(%s, () => console.log("Django Rest Mock Server: Listening on port %s"));""".strip()
         self.constructed = ''
 
     def __str__(self):
         if self.constructed:
-            return self.constructed.strip().replace("\n", "")
+            return self.constructed
         raise Exception('Call construct() first')
 
     def to_string(self):
         return str(self)
 
     def construct(self, variables, functions, endpoints, port=8000):
-        self.constructed = self.template.format(
-            variables=variables,
-            functions=functions,
-            endpoints=endpoints,
-            port=port
+        self.constructed = self.template % (
+            variables,
+            functions,
+            endpoints,
+            port,
+            port
         )
 
     def generate(self, file_path='index.js'):
