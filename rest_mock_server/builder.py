@@ -18,26 +18,27 @@ def get_store(url_details):
     for detail in url_details:
         base_url = detail['url'].strip()
         if len(detail['response']) > 1:
-            if detail['__key_position'] == 'url':
-                for resp in detail['response']:
-                    unique_key = detail['__key_name']
-                    constructed_url = re.sub(r'\_\_key\[.*\]', str(ast.literal_eval(resp)[unique_key]), base_url)
+            for resp in detail['response']:
+                if resp['__key_position'] == 'url':
+                    unique_key = resp['__key_name']
+                    if not base_url[-1] == '/':
+                        base_url = base_url + '/'
+                    constructed_url = base_url + str(ast.literal_eval(resp)[unique_key])
                     store[constructed_url] = {
                         'data': resp,
                         'pk': True,
-                        'pkName': detail['__key_name'],
+                        'pkName': resp['__key_name'],
                         'position': 'url'
                     }
-            elif detail['__key_position'] == 'query':
-                for resp in detail['response']:
-                    unique_key = detail['__key_name']
+                elif resp['__key_position'] == 'query':
+                    unique_key = resp['__key_name']
                     if not base_url[-1] == '/':
                         base_url = base_url + '/'
                     constructed_url = base_url + '__pk/' + str(ast.literal_eval(resp)[unique_key])
                     store[constructed_url] = {
                         'data': resp,
                         'pk': True,
-                        'pkName': detail['__key_name'],
+                        'pkName': resp['__key_name'],
                         'position': 'query'
                     }
         else:

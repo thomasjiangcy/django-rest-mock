@@ -84,31 +84,10 @@ class Parser:
         url = u.path
         query = parse_qs(u.query)
 
-        key_type, key_name, key_position = None, None, None
-        if '__key'in url:
-            key_position = 'url'
-            match = re.findall(r'\_\_key\[(.*)\]', url)
-            if match is not None:
-                key_details = match[0]
-                key_name, key_type = key_details.split(':')
-        else:
-            # Check if key is in params
-            for k, v in query.items():
-                _vals = [x for x in v if '__key' in x]
-                if _vals:
-                    key_name = k
-                    key_position = 'query'
-                    match = re.findall(r'\_\_key\[(.*)\]', _vals[0])
-                    if match is not None:
-                        key_type = match[0]
-
         return {
             'full_url': url_string.strip(),
             'url': url.strip(),
-            'query': query,
-            '__key_type': key_type,
-            '__key_position': key_position,
-            '__key_name': key_name
+            'query': query
         }
 
     @staticmethod
@@ -118,9 +97,17 @@ class Parser:
         generated_responses = []
         for _ in range(count):
             response = {}
+            key_type, key_name, key_position = None, None, None
             for k, v in resp.items():
-                if k == '__mockcount':
+                if k == '__mockcount' or k == '__key_position':
                     continue
+                if k == '__key':
+                    try:
+                        key_position = resp['__key_position']
+                    except KeyError:
+                        raise Exception("'__key_position' must be present if '__key' is present")
+                    key_name, key_type = v.split(':')
+                    
                 # Check if value fulfils the dynamic syntax
                 v = str(v)  # treat the value as a string regardless of its actual data type
                 has_syntax = re.findall(r'<(.*)>', v, flags=re.DOTALL)
@@ -129,6 +116,11 @@ class Parser:
                     response[k] = fake_val
                 else:
                     response[k] = v
+
+            response['__key_type'] = key_type,
+            response['__key_position'] = key_position,
+            response['__key_name'] = key_name
+
             generated_responses.append(json.dumps(response))
         return generated_responses
     
@@ -140,5 +132,4 @@ class Parser:
             url_detail['method'] = url['method']
             url_detail['response'] = self._parse_response(url['response'])
             results.append(url_detail)
-        print(results)
         self._results = results
