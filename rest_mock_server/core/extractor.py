@@ -9,13 +9,15 @@ Given a view::
 
     class SomeView(APIView):
         """
-        URL: /api/some/view/__key[id:int]?param1[int]&param2[str]
+        URL: /api/some/view/?param1[int]&param2[str]
         """
 
         def get(self, request, *args, **kwargs):
             """
             ```
             {
+                "__key": "<id:int>",
+                "__key_position": "url",
                 "__mockcount": 5,
                 "data": "Hello, world",
                 "id": "<sha256::10>"
