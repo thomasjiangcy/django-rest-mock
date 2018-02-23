@@ -9,7 +9,7 @@ Given a view::
 
     class SomeView(APIView):
         """
-        URL: /api/some/view/?param1[int]&param2[str]
+        URL: /api/some/view/__key?param1[int]&param2[str]
         """
 
         def get(self, request, *args, **kwargs):
@@ -87,18 +87,13 @@ class Extractor:
                     docstr = pattern.callback.__doc__
                     method = None
                     expected_json_response = ''
-
-                    if not docstr:
-                        # Skip to the next url if this view doesn't have
-                        # any docstring attached to it
-                        continue
-
-                    # Get expected URL
-                    u = re.findall(r'URL: (.*)', docstr, flags=re.DOTALL)
-                    if u:
-                        expected_url = u[0]
-                    else:
-                        expected_url = ''
+                    
+                    expected_url = ''
+                    if docstr:
+                        # Get expected URL
+                        u = re.findall(r'URL: (.*)', docstr, flags=re.DOTALL)
+                        if u:
+                            expected_url = u[0]
 
                     # Get all possible methods
                     if 'view_class' not in dir(pattern.callback):
@@ -121,6 +116,11 @@ class Extractor:
                                             'method': method,
                                             'response': expected_json_response
                                         })
+                        elif method in ['put', 'patch', 'delete']:
+                            self.url_details.append({
+                                'url': expected_url,
+                                'method': method
+                            })
 
                 except ViewDoesNotExist:
                     pass

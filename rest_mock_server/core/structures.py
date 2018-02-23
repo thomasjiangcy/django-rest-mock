@@ -1,3 +1,5 @@
+import re
+
 class BaseFactory:
 
     def __init__(self):
@@ -50,5 +52,8 @@ class Endpoint(BaseFactory):
         self.constructed = 'app.%s("%s", (req, res) => {%s});\n'
 
     def construct(self, method, uri, response):
+        cleaned_uri = re.findall(r'\/\w+\_\_(\/.*)', uri)
+        if cleaned_uri:
+            uri = cleaned_uri[0]
         self.constructed = self.constructed % (method, uri, response)
         self.is_constructed = True

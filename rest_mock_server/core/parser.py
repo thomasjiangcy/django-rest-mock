@@ -57,6 +57,9 @@ def replace_faker_attr(matchobj):
     else:
         attr, minimum, maximum = _split[0], 0, 0
     # Min, max will be applied in a slice function if the data is a string
+    if attr in PYTHON_DATATYPES:
+        attr = 'py' + attr
+
     try:
         fake_func = getattr(fake, attr)
         fake_val = fake_func()
@@ -97,7 +100,7 @@ class Parser:
         generated_responses = []
         for _ in range(count):
             response = {}
-            key_type, key_name, key_position = None, None, None
+            key_type, key_name, key_position = [None] * 3
             for k, v in resp.items():
                 if k == '__mockcount' or k == '__key_position':
                     continue
@@ -106,19 +109,21 @@ class Parser:
                         key_position = resp['__key_position']
                     except KeyError:
                         raise Exception("'__key_position' must be present if '__key' is present")
+                    v = v.replace('<', '').replace('>', '')
                     key_name, key_type = v.split(':')
                     
                 # Check if value fulfils the dynamic syntax
                 v = str(v)  # treat the value as a string regardless of its actual data type
                 has_syntax = re.findall(r'<(.*)>', v, flags=re.DOTALL)
-                if has_syntax is not None:
+                if has_syntax:
                     fake_val = re.sub(r'<(.*)>', replace_faker_attr, v, flags=re.DOTALL)
                     response[k] = fake_val
                 else:
+                    if k == '__key': continue
                     response[k] = v
 
-            response['__key_type'] = key_type,
-            response['__key_position'] = key_position,
+            response['__key_type'] = key_type
+            response['__key_position'] = key_position
             response['__key_name'] = key_name
 
             generated_responses.append(json.dumps(response))
@@ -130,6 +135,9 @@ class Parser:
             url_detail = self._parse_url(url['url'])
             url_detail['url'] = '/' + url['method'].lower() + '__' + url_detail['url']
             url_detail['method'] = url['method']
-            url_detail['response'] = self._parse_response(url['response'])
+            try:
+                url_detail['response'] = self._parse_response(url['response'])
+            except KeyError:
+                pass
             results.append(url_detail)
         self._results = results
