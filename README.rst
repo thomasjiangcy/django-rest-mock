@@ -117,6 +117,18 @@ Syntax
             ```
             """
             pass
+        
+        def put(self, request, *args, **kwargs):
+            """We won't need to specify any response here"""
+            pass
+        
+        def patch(self, request, *args, **kwargs):
+            """We won't need to specify any response here"""
+            pass
+        
+        def delete(self, request, *args, **kwargs):
+            """We won't need to specify any response here"""
+            pass
 
 When creating fixtures for a resource (CRUD), you only need to work with the instance endpoint, in ``Django REST framework``, it's typically the endpoint that requires a unique ID - e.g. ``/some-resource/<pk>``
 
