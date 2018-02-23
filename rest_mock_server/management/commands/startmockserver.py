@@ -19,5 +19,5 @@ class Command(BaseCommand):
         if server_file is None:
             express = build()
             server_file = 'index.js'
-
+        express.generate(file_path=server_file)
         express.start_server(file_path=server_file)
