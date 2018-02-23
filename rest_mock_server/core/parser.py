@@ -15,13 +15,21 @@ from urllib.parse import urlparse, parse_qs
 
 from faker import Faker
 
+from rest_mock_server.core.factory import FixtureFactory
+
 
 PYTHON_DATATYPES = ['str', 'int', 'float', 'decimal', 'set', 'dict', 'list', 'tuple', 'bool']
 fake = Faker()
+factory = FixtureFactory()
 
 
 def validate_fake_val(fake_val, fake_func, minimum, maximum):
-    if (type(fake_val) == 'int' or type(fake_val) == 'float' or type(fake_val) == 'decimal') and\
+    if minimum:
+        minimum = ast.literal_eval(minimum)
+    if maximum:
+        maximum = ast.literal_eval(maximum)
+
+    if (type(fake_val).__name__ == 'int' or type(fake_val).__name__ == 'float' or type(fake_val).__name__ == 'decimal') and\
         (minimum or maximum):
         if minimum and not maximum:
             while fake_val < minimum:
@@ -33,7 +41,7 @@ def validate_fake_val(fake_val, fake_func, minimum, maximum):
             while fake_val > maximum:
                 fake_val = fake_func()  # keep trying until fake_val <= maximum
 
-    elif type(fake_val) == 'str' and (minimum or maximum):
+    elif type(fake_val).__name__ == 'str' and (minimum or maximum):
         if minimum and not maximum:
             fake_val = fake_val[minimum:]
         elif minimum and maximum:
@@ -68,7 +76,13 @@ def replace_faker_attr(matchobj):
         fake_val = validate_fake_val(fake_val, fake_func, minimum, maximum)
         return fake_val
     except AttributeError:
-        return attr
+        # If Faker doesn't have the attribute, try FixtureFactory
+        try:
+            fake_func = getattr(factory, attr)
+            fake_val = fake_func()
+            return fake_val
+        except AttributeError:
+            return attr
 
 
 class Parser:
