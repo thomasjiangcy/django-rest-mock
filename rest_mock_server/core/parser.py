@@ -7,8 +7,10 @@ Parser needs to make sense of:
 
 """
 
+import ast
 import json
 import re
+from copy import deepcopy
 from urllib.parse import urlparse, parse_qs
 
 from faker import Faker
@@ -113,11 +115,16 @@ class Parser:
                     key_name, key_type = v.split(':')
                     
                 # Check if value fulfils the dynamic syntax
+                v_type = type(deepcopy(v)).__name__
                 v = str(v)  # treat the value as a string regardless of its actual data type
-                has_syntax = re.findall(r'<(.*)>', v, flags=re.DOTALL)
+                has_syntax = re.findall(r'<\w+(\d+)?(\:)?(\d+)?(\:)?(\d+)?>', v, flags=re.DOTALL)
+
                 if has_syntax:
-                    fake_val = re.sub(r'<(.*)>', replace_faker_attr, v, flags=re.DOTALL)
-                    response[k] = fake_val
+                    fake_val = re.sub(r'<\w+(\d+)?(\:)?(\d+)?(\:)?(\d+)?>', replace_faker_attr, v, flags=re.DOTALL)
+                    if v_type in ['list', 'dict', 'tuple', 'set']:
+                        response[k] = ast.literal_eval(fake_val)
+                    else:
+                        response[k] = fake_val
                 else:
                     if k == '__key': continue
                     response[k] = v
@@ -125,15 +132,15 @@ class Parser:
             response['__key_type'] = key_type
             response['__key_position'] = key_position
             response['__key_name'] = key_name
-
-            generated_responses.append(json.dumps(response))
+            generated_responses.append(str(response))
         return generated_responses
     
     def parse(self):
         results = []
         for url in self.url_details:
             url_detail = self._parse_url(url['url'])
-            url_detail['url'] = '/' + url['method'].lower() + '__' + url_detail['url']
+            method = 'get' if url['method'].lower() in ['get', 'put', 'patch', 'delete'] else 'post'
+            url_detail['url'] = '/' + method + '__' + url_detail['url']
             url_detail['method'] = url['method']
             try:
                 url_detail['response'] = self._parse_response(url['response'])

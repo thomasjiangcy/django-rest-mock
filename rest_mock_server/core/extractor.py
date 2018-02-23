@@ -104,6 +104,13 @@ class Extractor:
                     for method in possible_methods:
                         view_method_docstr = getattr(pattern.callback.view_class, method).__doc__
                         if view_method_docstr:
+                            # Check if method is modifier
+                            if method in ['put', 'patch', 'delete']:
+                                self.url_details.append({
+                                    'url': expected_url,
+                                    'method': method
+                                })
+                                continue
                             # Extract request method and JSON response from docstring of request method
                             j = re.findall(r'```(.*)```', view_method_docstr, flags=re.DOTALL)
                             if j is not None:
@@ -116,11 +123,7 @@ class Extractor:
                                             'method': method,
                                             'response': expected_json_response
                                         })
-                        elif method in ['put', 'patch', 'delete']:
-                            self.url_details.append({
-                                'url': expected_url,
-                                'method': method
-                            })
+                                        continue
 
                 except ViewDoesNotExist:
                     pass

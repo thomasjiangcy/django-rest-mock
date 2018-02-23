@@ -58,17 +58,21 @@ def get_handler():
 def modify_handler():
     """
     function modifyHandler (req) {
-        const _newData = postDataHandler(req);
+        const path = req.path;
+        const _newData = req.body;
         const newData = JSON.stringify(_newData);
         const storeCopy = Object.assign({}, store);
-        // const method = req.method.toLowerCase();
         const method = 'get';
         for (let i = 0; i < Object.keys(storeCopy).length; i ++) {
             if (Object.keys(storeCopy)[i].indexOf(path) > -1 && Object.keys(storeCopy)[i] === ('/' + method + '__' + path)) {
                 const key = Object.keys(storeCopy)[i];
-                storeCopy[key].data = Object.assign({}, storeCopy[key].data, newData);
+                if (req.method.toLowerCase() !== 'delete') {
+                    storeCopy[key].data = Object.assign({}, storeCopy[key].data, newData);
+                } else {
+                    storeCopy[key].data = {};
+                }
                 store = Object.assign({}, store, storeCopy);
-                const data = JSON.parse(storeCopy[key].data);
+                const data = storeCopy[key].data;
                 return data;
             } else if (Object.keys(storeCopy)[i].indexOf('/' + method + '__' + path) > -1) {
                 const key = Object.keys(storeCopy)[i];
@@ -81,9 +85,13 @@ def modify_handler():
                         pk = query[keyName];
                     }
                     if (pk && pk === resp.data[keyName]) {
-                        storeCopy[key].data = Object.assign({}, storeCopy[key].data, newData);
+                        if (req.method.toLowerCase() !== 'delete') {
+                            storeCopy[key].data = Object.assign({}, storeCopy[key].data, newData);
+                        } else {
+                            storeCopy[key].data = {};
+                        }
                         store = Object.assign({}, store, storeCopy);
-                        const data = JSON.parse(storeCopy[key].data);
+                        const data = storeCopy[key].data;
                         return data;
                     }
                 }
@@ -95,16 +103,20 @@ def modify_handler():
     func_builder = Function()
     func_args = 'req'
     func_body = """
-const newData = postDataHandler(req);
+const path = req.path;
+const newData = req.body;
 const storeCopy = Object.assign({}, store);
-// const method = req.method.toLowerCase();
 const method = 'get';
 for (let i = 0; i < Object.keys(storeCopy).length; i ++) {
     if (Object.keys(storeCopy)[i].indexOf(path) > -1 && Object.keys(storeCopy)[i] === ('/' + method + '__' + path)) {
         const key = Object.keys(storeCopy)[i];
-        storeCopy[key].data = Object.assign({}, storeCopy[key].data, newData);
+        if (req.method.toLowerCase() !== 'delete') {
+            storeCopy[key].data = Object.assign({}, storeCopy[key].data, newData);
+        } else {
+            storeCopy[key].data = {};
+        }
         store = Object.assign({}, store, storeCopy);
-        const data = JSON.parse(storeCopy[key].data);
+        const data = storeCopy[key].data;
         return data;
     } else if (Object.keys(storeCopy)[i].indexOf('/' + method + '__' + path) > -1) {
         const key = Object.keys(storeCopy)[i];
@@ -117,9 +129,13 @@ for (let i = 0; i < Object.keys(storeCopy).length; i ++) {
                 pk = query[keyName];
             }
             if (pk && pk === resp.data.keyName) {
-                storeCopy[key].data = Object.assign({}, storeCopy[key].data, newData);
+                if (req.method.toLowerCase() !== 'delete') {
+                    storeCopy[key].data = Object.assign({}, storeCopy[key].data, newData);
+                } else {
+                    storeCopy[key].data = {};
+                }
                 store = Object.assign({}, store, storeCopy);
-                const data = JSON.parse(storeCopy[key].data);
+                const data = storeCopy[key].data;
                 return data;
             }
         }
