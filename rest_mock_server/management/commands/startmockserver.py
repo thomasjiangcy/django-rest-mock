@@ -15,9 +15,8 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         server_file = options.get('server_file')
-
+        express = build()
         if server_file is None:
-            express = build()
             server_file = 'index.js'
         express.generate(file_path=server_file)
         express.start_server(file_path=server_file)
