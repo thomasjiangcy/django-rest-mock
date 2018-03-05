@@ -26,9 +26,9 @@ def get_store(url_details):
                     parsed_resp = ast.literal_eval(resp)
                     tmp_copy_resp = deepcopy(parsed_resp)
                     cleaned_resp = {}
-                    # Remove meta keys from cleaned resp
+                    # Remove meta keys or hidden attributes from cleaned resp
                     for k, v in tmp_copy_resp.items():
-                        if '__' not in k:
+                        if '__' not in k and '--' not in k:
                             cleaned_resp[k] = v
                     if parsed_resp['__key_position'] == 'url':
                         unique_key = parsed_resp['__key_name']
@@ -72,9 +72,9 @@ def get_store(url_details):
                 parsed_resp = ast.literal_eval(detail['response'][0])
                 tmp_copy_resp = deepcopy(parsed_resp)
                 cleaned_resp = {}
-                # Remove meta keys from cleaned resp
+                # Remove meta keys or hidden attributes from cleaned resp
                 for k, v in tmp_copy_resp.items():
-                    if '__' not in k:
+                    if '__' not in k and '--' not in k:
                         cleaned_resp[k] = v
 
                 store[base_url] = {

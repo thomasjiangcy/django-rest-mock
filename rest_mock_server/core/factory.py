@@ -57,7 +57,7 @@ class FixtureFactory:
         # Second, check for any indication of duplication
         if '__mockcount' in fake_response.keys():
             self.total_count = fake_response['__mockcount']
-    
+
     @staticmethod
     def validate_fake_val(fake_val, fake_func, minimum, maximum):
         if minimum:
@@ -94,7 +94,7 @@ class FixtureFactory:
             attr_map = attr.replace('fk__', '').split('.')
             source_value = reduce(operator.getitem, attr_map, self._response_holder)
             return source_value
-        
+
         if '__from__' in attr:
             target, source = attr.split('__from__')
 
@@ -119,16 +119,23 @@ class FixtureFactory:
                 unique_val = False
                 curr_val_store = getattr(self, target + '_currstore', None)
                 if curr_val_store is None:
-                    curr_val_store = set()
+                    curr_val_store = []
                     setattr(self, target + '_currstore', curr_val_store)
-                while not unique_val:
-                    index = random.randint(0, len(target_val_store)) # Get a random value from the store
-                    val = target_val_store[index]
-                    if val not in curr_val_store:
-                        unique_val = True
-                curr_val_store.add(val)
-                setattr(self, target + '_currstore', curr_val_store)
-                return val
+                if target_val_store:
+                    tries = 0
+                    while not unique_val:
+                        index = random.randint(0, (len(target_val_store) - 1)) # Get a random value from the store
+                        val = target_val_store[index]
+                        tries = tries + 1
+                        if tries >= 10:
+                            break
+                        if val not in curr_val_store:
+                            unique_val = True
+                    curr_val_store.append(val)
+                    setattr(self, target + '_currstore', curr_val_store)
+                    return str(val)
+                else:
+                    return
             else:
                 raise ValueError('No fixtures found')
 
@@ -151,7 +158,7 @@ class FixtureFactory:
         fake_val = fake_func()
         fake_val = self.validate_fake_val(fake_val, fake_func, minimum, maximum)
         return fake_val
-    
+
     def _parse_syntax(self, raw):
         v_type = type(deepcopy(raw)).__name__
         raw = str(raw)  # treat the value as a string regardless of its actual data type
