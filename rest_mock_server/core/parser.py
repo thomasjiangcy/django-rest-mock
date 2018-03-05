@@ -7,6 +7,7 @@ Parser needs to make sense of:
 
 """
 
+import glob
 import json
 from urllib.parse import urlparse, parse_qs
 
@@ -17,9 +18,22 @@ from rest_mock_server.core.factory import FixtureFactory
 
 class Parser:
 
-    def __init__(self, url_details):
+    def __init__(self, url_details, fixtures=None):
         self.url_details = url_details
         self._results = None
+        self.fixture_paths = fixtures
+        self.fixture_data = None
+        if self.fixture_paths is not None:
+            fixture_data = {}
+            for path in self.fixture_paths:
+                if not path.endswith('/'):
+                    path = path + '/'
+                for f in glob.glob(path + '*.json'):
+                    with open(f) as fixture_file:
+                        fixture = json.load(fixture_file)
+                        key_name = path.split('/')[-1][:-5]
+                        fixture_data[key_name] = fixture
+            self.fixture_data = fixture_data
 
     @property
     def results(self):
@@ -39,10 +53,9 @@ class Parser:
             'query': query
         }
 
-    @staticmethod
-    def _parse_response(response):
+    def _parse_response(self, response):
         resp = json.loads(response)
-        factory = FixtureFactory(resp)
+        factory = FixtureFactory(resp, self)
         return factory.generate()
 
     def parse(self):

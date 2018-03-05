@@ -125,9 +125,9 @@ def clean_url(full_url, store, method):
     return url, list_url
 
 
-def build(port=8000):
+def build(port=8000, fixtures=None):
     extractor = Extractor()
-    parser = Parser(extractor.url_details)
+    parser = Parser(extractor.url_details, fixtures)
     parser.parse()
     url_details = parser.results
     _store = get_store(url_details)

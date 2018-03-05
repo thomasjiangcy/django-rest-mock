@@ -17,6 +17,11 @@ class Command(BaseCommand):
             dest='port',
             help='Custom port to be exposed'
         )
+        parser.add_argument(
+            '--fixtures',
+            dest='fixtures',
+            help='Directory where fixtures can be extracted from'
+        )
 
     def handle(self, *args, **options):
         output = options.get('output_file')
@@ -25,5 +30,8 @@ class Command(BaseCommand):
         port = options.get('port')
         if port is None:
             port = 8000
-        express = build(port)
+        fixtures = options.get('fixtures')
+        if fixtures is not None:
+            fixtures = fixtures.split(',')
+        express = build(port, fixtures)
         express.generate(file_path=output)

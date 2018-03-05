@@ -5,8 +5,10 @@ Factory class to generate fake values
 import ast
 import json
 import operator
+import random
 import re
 from copy import deepcopy
+from decimal import Decimal
 from functools import reduce
 
 from faker import Faker
@@ -21,7 +23,9 @@ class FixtureFactory:
         "count",
     ]
 
-    def __init__(self, fake_response):
+    def __init__(self, fake_response, parser_instance):
+        self.parser_instance = parser_instance  # mainly to access fixtures if any
+
         self.fake_response = fake_response
         self.relationships = []
         self.relationship_targets = []
@@ -61,7 +65,7 @@ class FixtureFactory:
         if maximum:
             maximum = ast.literal_eval(maximum)
 
-        if (type(fake_val).__name__ == 'int' or type(fake_val).__name__ == 'float' or type(fake_val).__name__ == 'decimal') and\
+        if (isinstance(fake_val, int) or isinstance(fake_val, float) or isinstance(fake_val, Decimal)) and\
             (minimum or maximum):
             if minimum and not maximum:
                 while fake_val < minimum:
@@ -73,7 +77,7 @@ class FixtureFactory:
                 while fake_val > maximum:
                     fake_val = fake_func()  # keep trying until fake_val <= maximum
 
-        elif type(fake_val).__name__ == 'str' and (minimum or maximum):
+        elif isinstance(fake_val, str) and (minimum or maximum):
             if minimum and not maximum:
                 fake_val = fake_val[minimum:]
             elif minimum and maximum:
@@ -90,6 +94,40 @@ class FixtureFactory:
             attr_map = attr.replace('fk__', '').split('.')
             source_value = reduce(operator.getitem, attr_map, self._response_holder)
             return source_value
+        
+        if '__from__' in attr:
+            target, source = attr.split('__from__')
+
+            if self.parser_instance.fixture_data is not None:
+                target_val_store = getattr(self, target + '_store', None)
+                if target_val_store is None:
+                    try:
+                        source_data = self.parser_instance.fixture_data[source]
+                        target_val_store = []
+                        if isinstance(source_data, list):
+                            for data in source_data:
+                                for k, v in data['fields'].items():
+                                    if k == target:
+                                        target_val_store.append(v)
+                        setattr(self, target + '_store', target_val_store)
+                    except KeyError:
+                        raise ValueError('Fixture %s not found' % source)
+
+                unique_val = False
+                curr_val_store = getattr(self, target + '_currstore', None)
+                if curr_val_store is None:
+                    curr_val_store = set()
+                    setattr(self, target + '_currstore', curr_val_store)
+                while not unique_val:
+                    index = random.randint(0, len(target_val_store)) # Get a random value from the store
+                    val = target_val_store[index]
+                    if val not in curr_val_store:
+                        unique_val = True
+                curr_val_store.add(val)
+                setattr(self, target + '_currstore', curr_val_store)
+                return val
+            else:
+                raise ValueError('No fixtures found')
 
         # Check if optional arguments are specified - syntax is <attr:min:max>
         _split = attr.split(":")
@@ -138,7 +176,7 @@ class FixtureFactory:
             # to generate the source value first
             raw = self.fake_response[source]
             source_value = self._parse_syntax(raw)
-        if type(source_value).__name__ == 'str':
+        if isinstance(source_value, str):
             source_value = int(source_value)
         target = self.fake_response[target]
         values = []
