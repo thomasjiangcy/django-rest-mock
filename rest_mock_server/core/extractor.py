@@ -87,7 +87,7 @@ class Extractor:
                     docstr = pattern.callback.__doc__
                     method = None
                     expected_json_response = ''
-                    
+
                     expected_url = ''
                     if docstr:
                         # Get expected URL
@@ -137,7 +137,7 @@ class Extractor:
                 d = describe_pattern(pattern)
                 current_full_url = parent + d
                 self._get_view_details(patterns, current_full_url)
-    
+
     def _load_url_details(self):
         root_urls = self._urlconf.urls.urlpatterns
         self._get_view_details(root_urls)

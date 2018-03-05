@@ -55,7 +55,7 @@ def get_store(url_details):
                             'options': parsed_resp.get('__options', '{}')
                         }
                         has_instances = True
-                
+
                 if has_instances:
                     # This endpoint has multiple instances
                     # we will need to create a new endpoint to list all
@@ -153,7 +153,7 @@ def build(port=8000):
                 endpoints.append(str(list_endpoint))
             if list_endpoint.uri not in endpoint_uris:
                 endpoint_uris.append(list_endpoint.uri)
-        
+
         if method == 'modify':
             without_prefix = re.sub(r'\/(\w+)\_\_', '', u['url'])
             for k, v in _store.items():
