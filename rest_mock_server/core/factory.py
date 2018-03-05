@@ -4,8 +4,10 @@ Factory class to generate fake values
 
 import ast
 import json
+import operator
 import re
 from copy import deepcopy
+from functools import reduce
 
 from faker import Faker
 
@@ -84,6 +86,11 @@ class FixtureFactory:
 
     def replace_faker_attr(self, matchobj):
         attr = matchobj.group(0).replace('<', '').replace('>', '')
+        if 'fk__' in attr:
+            attr_map = attr.replace('fk__', '').split('.')
+            source_value = reduce(operator.getitem, attr_map, self._response_holder)
+            return source_value
+
         # Check if optional arguments are specified - syntax is <attr:min:max>
         _split = attr.split(":")
         if len(_split) > 1:
@@ -107,9 +114,11 @@ class FixtureFactory:
     def _parse_syntax(self, raw):
         v_type = type(deepcopy(raw)).__name__
         raw = str(raw)  # treat the value as a string regardless of its actual data type
-        has_syntax = re.findall(r'<\w+(\d+)?(\:)?(\d+)?(\:)?(\d+)?>', raw, flags=re.DOTALL)
+        has_syntax = re.findall(r'<(fk__)?(\w+)?(\d+)?(\:)?(\d+)?(\:)?(\d+)?>', raw, flags=re.DOTALL)
+
         if has_syntax:
-            fake_val = re.sub(r'<\w+(\d+)?(\:)?(\d+)?(\:)?(\d+)?>', self.replace_faker_attr, raw, flags=re.DOTALL)
+            fake_val = re.sub(r'<(fk__)?\w+(\d+)?(\:)?(\d+)?(\:)?(\d+)?>', self.replace_faker_attr, raw, flags=re.DOTALL)
+
             if v_type in ['list', 'dict', 'tuple', 'set']:
                 return ast.literal_eval(fake_val)
             else:
