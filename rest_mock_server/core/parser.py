@@ -31,7 +31,7 @@ class Parser:
                 for f in glob.glob(path + '*.json'):
                     with open(f) as fixture_file:
                         fixture = json.load(fixture_file)
-                        key_name = path.split('/')[-1][:-5]
+                        key_name = f.split('/')[-1][:-5]
                         fixture_data[key_name] = fixture
             self.fixture_data = fixture_data
 
