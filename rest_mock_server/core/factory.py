@@ -106,9 +106,12 @@ class FixtureFactory:
                         target_val_store = []
                         if isinstance(source_data, list):
                             for data in source_data:
-                                for k, v in data['fields'].items():
-                                    if k == target:
-                                        target_val_store.append(v)
+                                if target == 'pk':
+                                    target_val_store.append(data['pk'])
+                                else:
+                                    for k, v in data['fields'].items():
+                                        if k == target:
+                                            target_val_store.append(v)
                         setattr(self, target + '_store', target_val_store)
                     except KeyError:
                         raise ValueError('Fixture %s not found' % source)
