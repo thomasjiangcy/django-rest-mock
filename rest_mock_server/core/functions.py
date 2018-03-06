@@ -18,6 +18,9 @@ for (let i = 0; i < Object.keys(store).length; i ++) {
         const key = Object.keys(store)[i];
         const resp = store[key];
         const data = resp.data;
+        if (a instanceof Array) {
+            return data;
+        }
         return Object.assign({}, data);
     } else if (Object.keys(store)[i].indexOf('/' + method + '__' + path) > -1) {
         const key = Object.keys(store)[i];
@@ -31,6 +34,9 @@ for (let i = 0; i < Object.keys(store).length; i ++) {
             }
             if (pk && pk === resp.data[keyName]) {
                 const data = resp.data;
+                if (a instanceof Array) {
+                    return Object.assign([], data);
+                }
                 return Object.assign({}, data);
             }
         }
