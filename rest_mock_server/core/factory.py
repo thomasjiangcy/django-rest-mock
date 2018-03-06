@@ -90,14 +90,22 @@ class FixtureFactory:
 
     def replace_faker_attr(self, matchobj):
         attr = matchobj.group(0).replace('<', '').replace('>', '')
+        template = '{}{}{}'
+        startswithquote = ''
+        endswithquote = ''
+        if attr.startswith('"') or attr.startswith("'"):
+            startswithquote = '"'
+        if attr.endswith('"') or attr.endswith("'"):
+            endswithquote = '"'
         if 'fk__' in attr:
-            attr_map = attr.replace('fk__', '').split('.')
+            attr_map = [x.replace('"', '').replace("'", '') for x in attr.replace('fk__', '').split('.')]
             source_value = reduce(operator.getitem, attr_map, self._response_holder)
+            if isinstance(source_value, str):
+                return template.format(startswithquote, source_value, endswithquote)
             return source_value
 
         if '__from__' in attr:
-            target, source = attr.split('__from__')
-
+            target, source = [x.replace('"', '').replace("'", '') for x in attr.split('__from__')]
             if self.parser_instance.fixture_data is not None:
                 target_val_store = getattr(self, target + '_store', None)
                 if target_val_store is None:
@@ -133,14 +141,16 @@ class FixtureFactory:
                             unique_val = True
                     curr_val_store.append(val)
                     setattr(self, target + '_currstore', curr_val_store)
-                    return str(val)
+                    if not isinstance(val, str):
+                        return json.dumps(val)
+                    return template.format(startswithquote, val, endswithquote)
                 else:
                     return
             else:
                 raise ValueError('No fixtures found')
 
         # Check if optional arguments are specified - syntax is <attr:min:max>
-        _split = attr.split(":")
+        _split = [x.replace("'", '').replace('"', '') for x in attr.split(":")]
         if len(_split) > 1:
             # Get the attr and value range (min/max)
             attr, val_range = _split[0], _split[1:]
@@ -151,25 +161,31 @@ class FixtureFactory:
         else:
             attr, minimum, maximum = _split[0], 0, 0
         # Min, max will be applied in a slice function if the data is a string
+        attr_copy = attr  # keep a copy of original attribute
         if attr in self.PYTHON_DATATYPES:
             attr = 'py' + attr
-
         fake_func = getattr(fake, attr)
         fake_val = fake_func()
         fake_val = self.validate_fake_val(fake_val, fake_func, minimum, maximum)
-        return fake_val
+        if attr_copy in ['int', 'float']:
+            return fake_val
+        return template.format(startswithquote, fake_val, endswithquote)
 
     def _parse_syntax(self, raw):
-        v_type = type(deepcopy(raw)).__name__
         raw = str(raw)  # treat the value as a string regardless of its actual data type
         has_syntax = re.findall(r'<(fk__)?(\w+)?(\d+)?(\:)?(\d+)?(\:)?(\d+)?>', raw, flags=re.DOTALL)
 
         if has_syntax:
-            fake_val = re.sub(r'<(fk__)?\w+(\d+)?(\:)?(\d+)?(\:)?(\d+)?>', self.replace_faker_attr, raw, flags=re.DOTALL)
-
-            if v_type in ['list', 'dict', 'tuple', 'set']:
-                return ast.literal_eval(fake_val)
-            else:
+            fake_val = re.sub(
+                r'\'?\"?<(fk__)?\w+(\d+)?(\:)?(\d+)?(\:)?(\d+)?>\'?\"?',
+                self.replace_faker_attr,
+                raw,
+                flags=re.DOTALL
+            )
+            fake_val = fake_val.replace("'", '"')
+            try:
+                return json.loads(fake_val)
+            except:
                 return fake_val
         else:
             return raw
@@ -192,15 +208,18 @@ class FixtureFactory:
         values = []
         for _ in range(source_value):
             mock_value = self._parse_syntax(target)
-            v_type = type(deepcopy(mock_value)).__name__
             mock_value = str(mock_value)  # treat the value as a string regardless of its actual data type
             _target = str(mock_value)
             _target = _target[1:-1]
-            if v_type in ['list', 'dict', 'tuple', 'set']:
-                mock_value = ast.literal_eval(_target)
+            _target = _target.replace("'", '"')
+
+            try:
+                mock_value = json.loads(_target)
+            except:
+                mock_value = _target
             values.append(mock_value)
         return values
-    
+
     def _relationship_handler(self, source, relationship, target):
         handler = getattr(self, relationship)
         return handler(source, target)

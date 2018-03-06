@@ -22,50 +22,69 @@ def get_store(url_details):
         has_instances = False
         try:
             if len(detail['response']) > 1:
-                for resp in detail['response']:
-                    parsed_resp = ast.literal_eval(resp)
-                    tmp_copy_resp = deepcopy(parsed_resp)
-                    cleaned_resp = {}
-                    # Remove meta keys or hidden attributes from cleaned resp
-                    for k, v in tmp_copy_resp.items():
-                        if '__' not in k and '--' not in k:
-                            cleaned_resp[k] = v
-                    if parsed_resp['__key_position'] == 'url':
-                        unique_key = parsed_resp['__key_name']
-                        constructed_url = re.sub(r'\_\_key', str(parsed_resp[unique_key]), base_url)
-                        store[constructed_url] = {
-                            'data': cleaned_resp,
-                            'pk': True,
-                            'pkName': parsed_resp['__key_name'],
-                            'position': 'url',
-                            'options': parsed_resp.get('__options', '{}')
-                        }
-                        has_instances = True
-                    elif parsed_resp['__key_position'] == 'query':
-                        unique_key = parsed_resp['__key_name']
-                        if not base_url[-1] == '/':
-                            url_with_slash = base_url + '/'
-                        constructed_url = url_with_slash + '__pk/' + str(parsed_resp[unique_key])
-                        constructed_url = re.sub(r'\_\_key', '', constructed_url)  # if '__key' hasn't already been replaced, remove it
-                        store[constructed_url] = {
-                            'data': cleaned_resp,
-                            'pk': True,
-                            'pkName': parsed_resp['__key_name'],
-                            'position': 'query',
-                            'options': parsed_resp.get('__options', '{}')
-                        }
-                        has_instances = True
+                if '__key' in detail['full_url']:
+                    for resp in detail['response']:
+                        parsed_resp = ast.literal_eval(resp)
+                        tmp_copy_resp = deepcopy(parsed_resp)
+                        cleaned_resp = {}
+                        # Remove meta keys or hidden attributes from cleaned resp
+                        for k, v in tmp_copy_resp.items():
+                            if '__' not in k and '--' not in k:
+                                cleaned_resp[k] = v
+                        if parsed_resp['__key_position'] == 'url':
+                            unique_key = parsed_resp['__key_name']
+                            constructed_url = re.sub(r'\_\_key', str(parsed_resp[unique_key]), base_url)
+                            store[constructed_url] = {
+                                'data': cleaned_resp,
+                                'pk': True,
+                                'pkName': parsed_resp['__key_name'],
+                                'position': 'url',
+                                'options': parsed_resp.get('__options', '{}')
+                            }
+                            has_instances = True
+                        elif parsed_resp['__key_position'] == 'query':
+                            unique_key = parsed_resp['__key_name']
+                            if not base_url[-1] == '/':
+                                url_with_slash = base_url + '/'
+                            constructed_url = url_with_slash + '__pk/' + str(parsed_resp[unique_key])
+                            constructed_url = re.sub(r'\_\_key', '', constructed_url)  # if '__key' hasn't already been replaced, remove it
+                            store[constructed_url] = {
+                                'data': cleaned_resp,
+                                'pk': True,
+                                'pkName': parsed_resp['__key_name'],
+                                'position': 'query',
+                                'options': parsed_resp.get('__options', '{}')
+                            }
+                            has_instances = True
 
-                if has_instances:
-                    # This endpoint has multiple instances
-                    # we will need to create a new endpoint to list all
-                    # these instances
-                    list_url = re.sub(r'\/?\_\_key', '', base_url)
-                    instances = []
-                    for k, v in store.items():
-                        if list_url in k:
-                            instances.append(v['data'])
-                    store[list_url] = {'data': instances}
+                    if has_instances:
+                        # This endpoint has multiple instances
+                        # we will need to create a new endpoint to list all
+                        # these instances
+                        list_url = re.sub(r'\/?\_\_key', '', base_url)
+                        instances = []
+                        for k, v in store.items():
+                            if list_url in k:
+                                instances.append(v['data'])
+                        store[list_url] = {'data': instances}
+                else:
+                    # This is for an array of responses that don't
+                    # have primary keys. I.e. the endpoint only serves
+                    # a list
+                    clean_resp = []
+                    for resp in detail['response']:
+                        parsed_resp = ast.literal_eval(resp)
+                        tmp_copy_resp = deepcopy(parsed_resp)
+                        cleaned_resp = {}
+                        # Remove meta keys or hidden attributes from cleaned resp
+                        for k, v in tmp_copy_resp.items():
+                            if '__' not in k and '--' not in k:
+                                cleaned_resp[k] = v
+                        clean_resp.append(cleaned_resp)
+                    store[base_url] = {
+                        'data': clean_resp,
+                        'pk': False
+                    }
 
             else:
                 base_url = re.sub(r'\/?\_\_key', '', base_url)  # if '__key' hasn't already been replaced, remove it
