@@ -8,8 +8,10 @@ class ExpressServer:
     def __init__(self):
         self.template = """
 const express = require("express");
+const cors = require("cors");
 const bodyParser = require('body-parser');
 const app = express();
+app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 %s
@@ -52,6 +54,7 @@ app.listen(%s, () => console.log("Django Rest Mock Server: Listening on port %s"
             subprocess.check_output(['npm', 'list', 'express'])
         except:
             subprocess.call(['npm', 'install', 'express'])
+            subprocess.call(['npm', 'install', 'cors'])
 
         try:
             subprocess.call(["node", file_path])
