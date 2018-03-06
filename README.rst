@@ -151,6 +151,49 @@ POST requests will not create new instances, but PUT, PATCH and DELETE will work
 The resources are reset everytime the server is restarted.
 
 
+Meta-Keys
+=============
+
+As you have probably seen in the examples above, there are special keys prefixed with double-underscores such as ``__key``. These are meta-keys which will be used to grant special properties to the mock responses.
+
+* ``__key``: Represents the primary key/unique identifier of an instance
+* ``__key_position``: Where the ``__key`` should be located in the url - there are only two options "url" or "query".
+    * ``url``: The key should be within the main url such as ``/api/example/__key``
+    * ``query``: They key should be within the params such as ``api/example?id[str]=__key``
+* ``__mockcount``: The number of instances to create. Note that if ``__key`` is specified, an endpoint will be created that lists all the individual instances. However, if no ``__key`` is specified, then the endpoint will just return an array of N instances where N is specified in ``__mockcount``
+* ``__relationships``: Relationships dictate simple relationships between items in the mock response. The syntax is always "<source__relationship__target>"
+    * ``count``: It would be best illustrated with an example -
+        {
+            "__relationships": [
+                "user_count__count__users",
+            ],
+            "user_count": 20,
+            "users": [
+                {
+                    "id": "<int::50>",
+                    "user": "<name>"
+                }
+            ]
+        }
+
+        If you want to specify a source value without displaying it in the eventual endpoint, you may use the hidden syntax with a double-dash
+
+        {
+            "__relationships": [
+                "--user_count__count__users",
+            ],
+            "--user_count": 20,
+            "users": [
+                {
+                    "id": "<int::50>",
+                    "user": "<name>"
+                }
+            ]
+        }
+* ``__options``: Possible options related to this endpoint are as follows
+    * ``modifiers``: a list of modifier methods allowed for this resource. If you don't specify a method, that method won't be allowed for that endpoint
+    * ``excludeKey``: this can be specified to exclude a method from matching ``__key`` in the url. E.g. for the POST method for ``/resource/``, you might want to exclude it
+
 Example
 =======
 
