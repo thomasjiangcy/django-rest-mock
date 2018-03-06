@@ -194,6 +194,30 @@ As you have probably seen in the examples above, there are special keys prefixed
     * ``modifiers``: a list of modifier methods allowed for this resource. If you don't specify a method, that method won't be allowed for that endpoint
     * ``excludeKey``: this can be specified to exclude a method from matching ``__key`` in the url. E.g. for the POST method for ``/resource/``, you might want to exclude it
 
+
+Fixtures
+========
+
+More often than not, you will need to load fixtures to populate the mock endpoints.
+
+We can load fixtures during generation by specifying the ``--fixtures`` flag:
+``python manage.py genmockserver --fixtures data``
+
+Note that the folders must be direct parents. All files with ``.json`` extension will be taken into account.
+
+The syntax for that will be: "<key__from__filename>"
+
+If a file called ``users.json`` was loaded, then you can do:
+
+    {
+        "id": "<id__from__users>",
+        "full_name": "<first_name__from__users> <last_name__from__users>",
+        "contact": "<contact__from__users>"
+    }
+
+The JSON files must follow Django's format of JSON fixtures and the fields must include the keys used in the mock response. So "id", "first_name", "last_name" and "contact" must all exist in the users fields.
+
+
 Example
 =======
 
