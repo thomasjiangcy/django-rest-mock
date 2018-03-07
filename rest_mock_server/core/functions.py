@@ -18,6 +18,9 @@ for (let i = 0; i < Object.keys(store).length; i ++) {
         const key = Object.keys(store)[i];
         const resp = store[key];
         const data = resp.data;
+        if (data instanceof Array) {
+            return data;
+        }
         return Object.assign({}, data);
     } else if (Object.keys(store)[i].indexOf('/' + method + '__' + path) > -1) {
         const key = Object.keys(store)[i];
@@ -29,8 +32,11 @@ for (let i = 0; i < Object.keys(store).length; i ++) {
             if (Object.keys(query).length > 0 && query.constructor === Object) {
                 pk = query[keyName];
             }
-            if (pk && pk === resp.data[keyName]) {
+            if (pk && (pk === resp.data[keyName] || pk === resp.parentName)) {
                 const data = resp.data;
+                if (data instanceof Array) {
+                    return Object.assign([], data);
+                }
                 return Object.assign({}, data);
             }
         }

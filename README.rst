@@ -145,6 +145,10 @@ The syntax for fake data is as follows: ``<fakedatatype:min:max>``
 * ``min``: for numbers, it will only generated random numbers that are at least ``min`` or greater. For strings, this will be the first index it will slice from
 * ``max``: for numbers, it will only generated random numbers that are at most ``max`` or smaller. For strings, this will be the last index
 
+Special Characters
+
+* ``^``: Putting a caret in front of the variable like "<^int:500:1000>" will generate only unique numbers between 500 to 1000
+
 
 POST requests will not create new instances, but PUT, PATCH and DELETE will work as expected on the resources.
 The resources are reset everytime the server is restarted.
@@ -217,6 +221,35 @@ If a file called ``users.json`` was loaded, then you can do::
 
 The JSON files must follow Django's format of JSON fixtures and the fields must include the keys used in the mock response. So "id", "first_name", "last_name" and "contact" must all exist in the users fields.
 
+
+Advanced Usage with *
+=====================
+
+There may be a situation where you would like to specify the keys in an endpoint and what type of response each key maps to.
+
+For example, you might have the following base URL "/api/example" and you would like to have the following key definition::
+
+    URL: /api/example?id[str]=__key
+
+    {
+        "__key": "<*id:str>",
+        "__key_position": "query",
+        "users": [
+            {
+                "id": "<id__from__users>",
+                "name": "<name__from__users>"
+            }
+        ],
+        "burgers": [
+            {
+                "id": "<id__from__burgers>",
+                "burger_type": "<burger__from__burgers>"
+            }
+        ]
+    }
+
+This will generate an endpoint that allows for two specific keys "/api/example?id=users" and "/api/example?id=burgers", which will each respond with whatever is defined under them.
+Note the asterisk in front of the key which indicates that all non-meta keys will be taken as keys for this endpoint. In this case, our keys are "users" and "burgers"
 
 Example
 =======

@@ -25,6 +25,7 @@ class FixtureFactory:
 
     def __init__(self, fake_response, parser_instance):
         self.parser_instance = parser_instance  # mainly to access fixtures if any
+        self._is_empty = False  # remote controller for unique values - re.sub should return empty value
 
         self.fake_response = fake_response
         self.relationships = []
@@ -88,8 +89,22 @@ class FixtureFactory:
         # For all other data types, min/max attributes will have no effect
         return str(fake_val)  # make sure to return a 'str' type
 
+    def handle_other_factory_method(self, attr, minimum, maximum):
+        if attr == 'percentage':
+            if minimum:
+                minimum = ast.literal_eval(minimum)
+            else:
+                minimum = 0
+            if maximum:
+                maximum = ast.literal_eval(maximum)
+            else:
+                maximum = 100
+            val = random.uniform(minimum, maximum)
+            return val
+
     def replace_faker_attr(self, matchobj):
         attr = matchobj.group(0).replace('<', '').replace('>', '')
+        # Prepare template to handle quotes
         template = '{}{}{}'
         startswithquote = ''
         endswithquote = ''
@@ -97,6 +112,18 @@ class FixtureFactory:
             startswithquote = '"'
         if attr.endswith('"') or attr.endswith("'"):
             endswithquote = '"'
+
+        # Check if uniqueness is required
+        # We will need to maintain a temporary state to keep track of values
+        is_unique = False
+        if attr.startswith("'^") or attr.startswith("^"):
+            is_unique = True
+            attr = attr[2:] if attr.startswith("'^") else attr[1:]
+            temp_state = getattr(self, attr.strip("'") + '__temp_state', None)
+            if temp_state is None:
+                setattr(self, attr.strip("'") + '__temp_state', [])
+                temp_state = []
+
         if 'fk__' in attr:
             attr_map = [x.replace('"', '').replace("'", '') for x in attr.replace('fk__', '').split('.')]
             source_value = reduce(operator.getitem, attr_map, self._response_holder)
@@ -108,6 +135,7 @@ class FixtureFactory:
             target, source = [x.replace('"', '').replace("'", '') for x in attr.split('__from__')]
             if self.parser_instance.fixture_data is not None:
                 target_val_store = getattr(self, target + '_store', None)
+
                 if target_val_store is None:
                     try:
                         source_data = self.parser_instance.fixture_data[source]
@@ -124,23 +152,18 @@ class FixtureFactory:
                     except KeyError:
                         raise ValueError('Fixture %s not found' % source)
 
-                unique_val = False
-                curr_val_store = getattr(self, target + '_currstore', None)
-                if curr_val_store is None:
-                    curr_val_store = []
-                    setattr(self, target + '_currstore', curr_val_store)
                 if target_val_store:
-                    tries = 0
-                    while not unique_val:
-                        index = random.randint(0, (len(target_val_store) - 1)) # Get a random value from the store
-                        val = target_val_store[index]
-                        tries = tries + 1
-                        if tries >= 10:
-                            break
-                        if val not in curr_val_store:
-                            unique_val = True
-                    curr_val_store.append(val)
-                    setattr(self, target + '_currstore', curr_val_store)
+                    val = random.choice(target_val_store)
+                    if is_unique:
+                        while True:
+                            if val not in temp_state:
+                                temp_state.append(val)
+                                setattr(self, attr.strip("'") + '__temp_state', temp_state)
+                                break
+                            if all(x in temp_state for x in target_val_store):
+                                self._is_empty = True
+                                break
+                            val = random.choice(target_val_store)
                     if not isinstance(val, str):
                         return json.dumps(val)
                     return template.format(startswithquote, val, endswithquote)
@@ -164,29 +187,44 @@ class FixtureFactory:
         attr_copy = attr  # keep a copy of original attribute
         if attr in self.PYTHON_DATATYPES:
             attr = 'py' + attr
-        fake_func = getattr(fake, attr)
-        fake_val = fake_func()
-        fake_val = self.validate_fake_val(fake_val, fake_func, minimum, maximum)
+        try:
+            fake_func = getattr(fake, attr)
+            fake_val = fake_func()
+            fake_val = self.validate_fake_val(fake_val, fake_func, minimum, maximum)
+        except AttributeError:
+            # Check other methods
+            fake_val = self.handle_other_factory_method(attr, minimum, maximum)
+
+        if is_unique:
+            while True:
+                if fake_val not in temp_state:
+                    break
+                fake_val = fake_func()
+                fake_val = self.validate_fake_val(fake_val, fake_func, minimum, maximum)
+            temp_state.append(fake_val)
+            setattr(self, attr.strip("'") + '__temp_state', temp_state)
+
         if attr_copy in ['int', 'float']:
             return fake_val
         return template.format(startswithquote, fake_val, endswithquote)
 
     def _parse_syntax(self, raw):
         raw = str(raw)  # treat the value as a string regardless of its actual data type
-        has_syntax = re.findall(r'<(fk__)?(\w+)?(\d+)?(\:)?(\d+)?(\:)?(\d+)?>', raw, flags=re.DOTALL)
+        has_syntax = re.findall(r'<(\^)?(fk__)?(\w+)?([0-9]*[.]?[0-9]+?)?(\:)?([0-9]*[.]?[0-9]+?)?(\:)?([0-9]*[.]?[0-9]+?)?>', raw, flags=re.DOTALL)
 
         if has_syntax:
             fake_val = re.sub(
-                r'\'?\"?<(fk__)?\w+(\d+)?(\:)?(\d+)?(\:)?(\d+)?>\'?\"?',
+                r'\'?\"?<(\^)?(fk__)?(\w+)?([0-9]*[.]?[0-9]+?)?(\:)?([0-9]*[.]?[0-9]+?)?(\:)?([0-9]*[.]?[0-9]+?)?>\'?\"?',
                 self.replace_faker_attr,
                 raw,
                 flags=re.DOTALL
             )
             fake_val = fake_val.replace("'", '"')
             try:
-                return json.loads(fake_val)
+                fake_val = json.loads(fake_val)
             except:
-                return fake_val
+                pass
+            return fake_val
         else:
             return raw
 
@@ -207,17 +245,22 @@ class FixtureFactory:
         target = self.fake_response[target]
         values = []
         for _ in range(source_value):
-            mock_value = self._parse_syntax(target)
-            mock_value = str(mock_value)  # treat the value as a string regardless of its actual data type
-            _target = str(mock_value)
-            _target = _target[1:-1]
-            _target = _target.replace("'", '"')
+            self._is_empty = False  # remote state for re.sub to switch in case it hits a None value
+            def get_mock_value(target):
+                mock_value = self._parse_syntax(target)
+                mock_value = str(mock_value)  # treat the value as a string regardless of its actual data type
+                _target = str(mock_value)
+                _target = _target[1:-1]
+                _target = _target.replace("'", '"')
 
-            try:
-                mock_value = json.loads(_target)
-            except:
-                mock_value = _target
-            values.append(mock_value)
+                try:
+                    mock_value = json.loads(_target)
+                except:
+                    mock_value = _target
+                return mock_value
+            mock_value = get_mock_value(target)
+            if not self._is_empty:
+                values.append(mock_value)
         return values
 
     def _relationship_handler(self, source, relationship, target):
@@ -227,19 +270,27 @@ class FixtureFactory:
     def generate(self):
         generated_responses = []
         for _ in range(self.total_count):
+            self._is_empty = False
             self._response_holder = {}
             key_type, key_name, key_position = [None] * 3
             for k, v in self.fake_response.items():
+                self._is_empty = False
                 # Skip meta keys
                 if k in self.META_KEYS:
                     continue
 
                 # Check if key is in relationship
                 for r in self.relationships:
+                    self._is_empty = False
                     if r['target'] == k:
                         # If current key is defined as a relationship target
                         # then we need to handle it first
-                        self._response_holder[k] = self._relationship_handler(r['source'], r['relationship'], r['target'])
+                        value = self._relationship_handler(
+                            r['source'],
+                            r['relationship'],
+                            r['target']
+                        )
+                        self._response_holder[k] = value
                         continue
 
                 if k == '__key':
@@ -251,7 +302,12 @@ class FixtureFactory:
                     key_name, key_type = v.split(':')
                 elif k not in self.relationship_targets:
                     # Check if value fulfils the dynamic syntax
-                    self._response_holder[k] = self._parse_syntax(v)
+                    val = self._parse_syntax(v)
+                    if k == 'confidentiality':
+                        print(val)
+                    if self._is_empty:
+                        continue
+                    self._response_holder[k] = val
 
             self._response_holder['__key_type'] = key_type
             self._response_holder['__key_position'] = key_position

@@ -44,14 +44,14 @@ def get_store(url_details):
                             has_instances = True
                         elif parsed_resp['__key_position'] == 'query':
                             unique_key = parsed_resp['__key_name']
-                            if not base_url[-1] == '/':
+                            if not base_url.endswith('/'):
                                 url_with_slash = base_url + '/'
                             constructed_url = url_with_slash + '__pk/' + str(parsed_resp[unique_key])
                             constructed_url = re.sub(r'\_\_key', '', constructed_url)  # if '__key' hasn't already been replaced, remove it
                             store[constructed_url] = {
                                 'data': cleaned_resp,
                                 'pk': True,
-                                'pkName': parsed_resp['__key_name'],
+                                'pkName': unique_key,
                                 'position': 'query',
                                 'options': parsed_resp.get('__options', '{}')
                             }
@@ -87,6 +87,30 @@ def get_store(url_details):
                     }
 
             else:
+                # Check if unique key is a dynamic key
+                if isinstance(detail['response'], list) and len(detail['response']) == 1:
+                    response = ast.literal_eval(detail['response'][0])
+                    if response['__key_name'] is not None and response['__key_name'].startswith('*'):
+                        for k, v in response.items():
+                            if k.startswith('__') or k.startswith('--'):
+                                continue
+                            unique_key = k
+                            if response['__key_position'] == 'query':
+                                if not base_url.endswith('/'):
+                                    url_with_slash = base_url + '/'
+                                constructed_url = url_with_slash + '__pk/' + str(unique_key)
+                                constructed_url = re.sub(r'\_\_key', '', constructed_url)
+                            else:
+                                constructed_url = re.sub(r'\_\_key', str(unique_key), base_url)
+                            store[constructed_url] = {
+                                'data': v,
+                                'pk': True,
+                                'parentName': unique_key,
+                                'pkName': response['__key_name'][1:],
+                                'position': response['__key_position'],
+                                'options': parsed_resp.get('__options', '{}')
+                            }
+                        has_instances = True
                 base_url = re.sub(r'\/?\_\_key', '', base_url)  # if '__key' hasn't already been replaced, remove it
                 parsed_resp = ast.literal_eval(detail['response'][0])
                 tmp_copy_resp = deepcopy(parsed_resp)
