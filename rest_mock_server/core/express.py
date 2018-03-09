@@ -3,6 +3,8 @@ import shutil
 import subprocess
 import sys
 
+from jsmin import jsmin
+
 class ExpressServer:
 
     def __init__(self):
@@ -27,9 +29,11 @@ class ExpressServer:
             port
         )
 
-    def generate(self, file_path='index.js'):
+    def generate(self, file_path='index.js', no_minify=False):
         with open(file_path, 'w') as f:
-            f.write(self.to_string())
+            if no_minify:
+                f.write(self.to_string())
+            f.write(jsmin(self.to_string()).replace('\n', ''))
 
     def start_server(self, file_path='index.js'):
         # Check if node is installed
