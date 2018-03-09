@@ -53,6 +53,12 @@ Starts an ExpressJS server (it will generate an ExpressJS file if necessary)::
     --fixtures: Specify fixture paths - note that they must be the direct parent of where the .json fixtures are located
     --no-minify: Flag to indicate no minification of output file, doesn't take any arguments
 
+Steps to use:
+
+1. Create your docstrings in your views (more details below)
+2. Add views to urls (the actual url doesn't matter, what matters is that the view class is added to Django's URL conf so that it can be detected)
+3. Run either ``genmockserver`` or ``startmockserver``
+
 Syntax
 ======
 
@@ -229,6 +235,11 @@ If a file called ``users.json`` was loaded, then you can do::
     }
 
 The JSON files must follow Django's format of JSON fixtures and the fields must include the keys used in the mock response. So "id", "first_name", "last_name" and "contact" must all exist in the users fields.
+
+
+Other Factory Methods (Not included in Faker)
+=============================================
+* ``percentage``: Will generate a percentage between 0 - 100 by default, you may specify the lower and upper bound to override the default range.
 
 
 Advanced Usage with *
