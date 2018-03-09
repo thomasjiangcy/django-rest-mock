@@ -39,10 +39,19 @@ Generates an ExpressJS file::
 
     $ python manage.py genmockserver
 
+    --output: Custom output path and name, by default it will output 'index.js' in the current directory
+    --port: The port that's exposed by the ExpressJS server
+    --fixtures: Specify fixture paths - note that they must be the direct parent of where the .json fixtures are located
+    --no-minify: Flag to indicate no minification of output file, doesn't take any arguments
+
 Starts an ExpressJS server (it will generate an ExpressJS file if necessary)::
 
     $ python manage.py startmockserver
 
+    --file: Specify the ExpressJS file to use
+    --port: Specify the port
+    --fixtures: Specify fixture paths - note that they must be the direct parent of where the .json fixtures are located
+    --no-minify: Flag to indicate no minification of output file, doesn't take any arguments
 
 Syntax
 ======
@@ -255,3 +264,9 @@ Example
 =======
 
 Refer to the example app for a detailed example.
+
+To-do
+=====
+
+* Allow for special queries such as 'limit', 'offset' and make them configurable (i.e. instead of 'limit', 'offset', user can set other names for the same function)
+* Update exampleapp to include more usage examples
