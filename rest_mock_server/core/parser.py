@@ -1,10 +1,6 @@
 """
-Parser needs to make sense of:
-
-* Query params
-* Request method - whether it is a retrieval or modification (GET vs the rest)
-* Data to generate (and the corresponding number of endpoints) - uses Faker to generate
-
+The Parser acts as a proxy to the factory. It relies
+on the factory to generate mock responses for each specification.
 """
 
 import glob
@@ -23,6 +19,8 @@ class Parser:
         self._results = None
         self.fixture_paths = fixtures
         self.fixture_data = None
+        
+        # Collect all fixture data if paths are specified
         if self.fixture_paths is not None:
             fixture_data = {}
             for path in self.fixture_paths:
@@ -60,6 +58,8 @@ class Parser:
 
     def parse(self):
         results = []
+
+        # Loop through each url detail and parse its mock responses
         for url in self.url_details:
             url_detail = self._parse_url(url['url'])
             method = 'get' if url['method'].lower() in ['get', 'put', 'patch', 'delete'] else 'post'

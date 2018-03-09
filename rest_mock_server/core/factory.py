@@ -13,6 +13,8 @@ from functools import reduce
 
 from faker import Faker
 
+from .utils import validate_fake_val
+
 fake = Faker()
 
 class FixtureFactory:
@@ -24,12 +26,29 @@ class FixtureFactory:
     ]
 
     def __init__(self, fake_response, parser_instance):
-        self.parser_instance = parser_instance  # mainly to access fixtures if any
-        self._is_empty = False  # remote controller for unique values - re.sub should return empty value
+        # We want to have access to the parse instance mainly
+        # to access fixtures if any
+        self.parser_instance = parser_instance 
 
+        # Remote controller for unique values - re.sub should return empty value.
+        # After a mock value is created, and the mock value is checked against the instance's
+        # current state of unique values - if it already exists, this instance attribute
+        # would be a flag to remove this from the overall response to enforce uniqueness
+        self._is_empty = False  
+
+        # We need to keep track of the fake response that is being generated
         self.fake_response = fake_response
+
+        # We store a list of all relationships specified for this endpoint
         self.relationships = []
+
+        # A list of relationship targets - i.e. those on the right hand side of the
+        # relationship syntax
         self.relationship_targets = []
+
+        # This is the default duplication count - no duplication - we only create
+        # one instance of the responses unless other specified by the `__mockcount`
+        # property
         self.total_count = 1
 
         # First, check for any relationships declared
@@ -60,36 +79,12 @@ class FixtureFactory:
             self.total_count = fake_response['__mockcount']
 
     @staticmethod
-    def validate_fake_val(fake_val, fake_func, minimum, maximum):
-        if minimum:
-            minimum = ast.literal_eval(minimum)
-        if maximum:
-            maximum = ast.literal_eval(maximum)
-
-        if (isinstance(fake_val, int) or isinstance(fake_val, float) or isinstance(fake_val, Decimal)) and\
-            (minimum or maximum):
-            if minimum and not maximum:
-                while fake_val < minimum:
-                    fake_val = fake_func()  # keep trying until fake_val > minimum
-            elif minimum and maximum:
-                while fake_val < minimum or fake_val > maximum:
-                    fake_val = fake_func()  # keep trying until minimum <= fake_val <= maximum
-            elif not minimum and maximum:
-                while fake_val > maximum:
-                    fake_val = fake_func()  # keep trying until fake_val <= maximum
-
-        elif isinstance(fake_val, str) and (minimum or maximum):
-            if minimum and not maximum:
-                fake_val = fake_val[minimum:]
-            elif minimum and maximum:
-                fake_val = fake_val[minimum:maximum]
-            elif not minimum and maximum:
-                fake_val = fake_val[:maximum]
-
-        # For all other data types, min/max attributes will have no effect
-        return str(fake_val)  # make sure to return a 'str' type
-
-    def handle_other_factory_method(self, attr, minimum, maximum):
+    def handle_other_factory_method(attr, minimum, maximum):
+        """
+        This is a temporary static method, when there are more factory
+        methods, we can move this to another class or find a way to maintain
+        it in a scalable manner
+        """
         if attr == 'percentage':
             if minimum:
                 minimum = ast.literal_eval(minimum)
@@ -101,10 +96,22 @@ class FixtureFactory:
                 maximum = 100
             val = random.uniform(minimum, maximum)
             return val
+        
+        # If `attr` isn't specified above, we need to raise an error
+        raise ValueError('`%s` isn\'t a valid factory method.' % attr)
 
-    def replace_faker_attr(self, matchobj):
+    def _replace_faker_attr(self, matchobj):
+        """
+        Callable used in re.sub to match, generate and replace the
+        valid syntax found in the mock response specifications.
+        """
         attr = matchobj.group(0).replace('<', '').replace('>', '')
+
         # Prepare template to handle quotes
+        # For example, in situtations where the specification may
+        # be "<first_name__from__users> <last_name__from__users>"
+        # we want to be able to generate "John Doe" instead of "'John' 'Doe'"
+        # so we create a template based on how it originally looked
         template = '{}{}{}'
         startswithquote = ''
         endswithquote = ''
@@ -124,6 +131,8 @@ class FixtureFactory:
                 setattr(self, attr.strip("'") + '__temp_state', [])
                 temp_state = []
 
+        # 'fk' relationship fakes a 'Foreign Key' relationship but in actual
+        # fact it just serves as a reference to an existing value
         if 'fk__' in attr:
             attr_map = [x.replace('"', '').replace("'", '') for x in attr.replace('fk__', '').split('.')]
             source_value = reduce(operator.getitem, attr_map, self._response_holder)
@@ -131,11 +140,18 @@ class FixtureFactory:
                 return template.format(startswithquote, source_value, endswithquote)
             return source_value
 
+        # We need to go through all the loaded fixtures to find the correct
+        # values from the source file specified
         if '__from__' in attr:
             target, source = [x.replace('"', '').replace("'", '') for x in attr.split('__from__')]
             if self.parser_instance.fixture_data is not None:
+                # Load up all the source values
+                # e.g. for "<name__from__users>" we want to load up
+                # all 'name' values retrieved from the 'users' fixture
+                # into a store, essentially a list
                 target_val_store = getattr(self, target + '_store', None)
 
+                # Create a store if it doesn't exist yet
                 if target_val_store is None:
                     try:
                         source_data = self.parser_instance.fixture_data[source]
@@ -152,6 +168,9 @@ class FixtureFactory:
                     except KeyError:
                         raise ValueError('Fixture %s not found' % source)
 
+                # Store already exists, so if response is specified
+                # to enforce uniqueness, we need to make use of the store to check
+                # if not, we can just ignore it
                 if target_val_store:
                     val = random.choice(target_val_store)
                     if is_unique:
@@ -172,6 +191,9 @@ class FixtureFactory:
             else:
                 raise ValueError('No fixtures found')
 
+        # If the response is not any of the special properties above
+        # we will handle it below
+
         # Check if optional arguments are specified - syntax is <attr:min:max>
         _split = [x.replace("'", '').replace('"', '') for x in attr.split(":")]
         if len(_split) > 1:
@@ -183,6 +205,7 @@ class FixtureFactory:
                 minimum, maximum = val_range[0], 0
         else:
             attr, minimum, maximum = _split[0], 0, 0
+
         # Min, max will be applied in a slice function if the data is a string
         attr_copy = attr  # keep a copy of original attribute
         if attr in self.PYTHON_DATATYPES:
@@ -190,7 +213,7 @@ class FixtureFactory:
         try:
             fake_func = getattr(fake, attr)
             fake_val = fake_func()
-            fake_val = self.validate_fake_val(fake_val, fake_func, minimum, maximum)
+            fake_val = validate_fake_val(fake_val, fake_func, minimum, maximum)
         except AttributeError:
             # Check other methods
             fake_val = self.handle_other_factory_method(attr, minimum, maximum)
@@ -200,7 +223,7 @@ class FixtureFactory:
                 if fake_val not in temp_state:
                     break
                 fake_val = fake_func()
-                fake_val = self.validate_fake_val(fake_val, fake_func, minimum, maximum)
+                fake_val = validate_fake_val(fake_val, fake_func, minimum, maximum)
             temp_state.append(fake_val)
             setattr(self, attr.strip("'") + '__temp_state', temp_state)
 
@@ -209,13 +232,17 @@ class FixtureFactory:
         return template.format(startswithquote, fake_val, endswithquote)
 
     def _parse_syntax(self, raw):
+        """
+        Retrieves the syntax from the response and goes through each
+        one to generate and replace it with mock values
+        """
         raw = str(raw)  # treat the value as a string regardless of its actual data type
         has_syntax = re.findall(r'<(\^)?(fk__)?(\w+)?([0-9]*[.]?[0-9]+?)?(\:)?([0-9]*[.]?[0-9]+?)?(\:)?([0-9]*[.]?[0-9]+?)?>', raw, flags=re.DOTALL)
 
         if has_syntax:
             fake_val = re.sub(
                 r'\'?\"?<(\^)?(fk__)?(\w+)?([0-9]*[.]?[0-9]+?)?(\:)?([0-9]*[.]?[0-9]+?)?(\:)?([0-9]*[.]?[0-9]+?)?>\'?\"?',
-                self.replace_faker_attr,
+                self._replace_faker_attr,
                 raw,
                 flags=re.DOTALL
             )
@@ -227,6 +254,10 @@ class FixtureFactory:
             return fake_val
         else:
             return raw
+    
+    def _relationship_handler(self, source, relationship, target):
+        handler = getattr(self, relationship)
+        return handler(source, target)
 
     def count(self, source, target):
         """
@@ -236,7 +267,7 @@ class FixtureFactory:
         try:
             source_value = self._response_holder[source]
         except KeyError:
-            # source value hasn't been determined yet, we need
+            # Source value hasn't been determined yet, we need
             # to generate the source value first
             raw = self.fake_response[source]
             source_value = self._parse_syntax(raw)
@@ -245,27 +276,22 @@ class FixtureFactory:
         target = self.fake_response[target]
         values = []
         for _ in range(source_value):
-            self._is_empty = False  # remote state for re.sub to switch in case it hits a None value
-            def get_mock_value(target):
-                mock_value = self._parse_syntax(target)
-                mock_value = str(mock_value)  # treat the value as a string regardless of its actual data type
-                _target = str(mock_value)
-                _target = _target[1:-1]
-                _target = _target.replace("'", '"')
+            self._is_empty = False  # Remote state for re.sub to switch in case it hits a None value
+            mock_value = self._parse_syntax(target)
+            mock_value = str(mock_value)  # Treat the value as a string regardless of its actual data type
+            _target = mock_value[1:-1]  # Remove extra quotation
+            _target = _target.replace("'", '"')
 
-                try:
-                    mock_value = json.loads(_target)
-                except:
-                    mock_value = _target
-                return mock_value
-            mock_value = get_mock_value(target)
+            try:
+                mock_value = json.loads(_target)
+            except:
+                mock_value = _target
+
+            # If uniqueness is specified and this mock value isn't
+            # in the store yet, then we can append it to the results
             if not self._is_empty:
                 values.append(mock_value)
         return values
-
-    def _relationship_handler(self, source, relationship, target):
-        handler = getattr(self, relationship)
-        return handler(source, target)
 
     def generate(self):
         generated_responses = []
