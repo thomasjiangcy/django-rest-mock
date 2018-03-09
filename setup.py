@@ -17,7 +17,8 @@ setup(
     license='MIT',
     install_requires=[
         'Django>=1.11',
-        'Faker>=0.8.11'
+        'Faker>=0.8.11',
+        'jsmin>=2.2.2'
     ],
     include_package_data=True,
     zip_safe=False,
