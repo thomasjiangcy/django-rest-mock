@@ -3,10 +3,12 @@ from setuptools import setup, find_packages
 
 
 here = os.path.abspath(os.path.dirname(__file__))
-README = open(os.path.join(here, 'README.rst')).read()
+
+with open(os.path.join(here, 'README.rst'), 'r', encoding='utf-8') as f:
+    README = f.read()
 
 about = {}
-with open(os.path.join(here, 'rest_mock_server', '__version__.py'), 'r', 'utf-8') as f:
+with open(os.path.join(here, 'rest_mock_server', '__version__.py'), 'r', encoding='utf-8') as f:
     exec(f.read(), about)
 
 setup(

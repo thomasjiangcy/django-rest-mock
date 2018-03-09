@@ -27,7 +27,7 @@ class Parser:
                 if not path.endswith('/'):
                     path = path + '/'
                 for f in glob.glob(path + '*.json'):
-                    with open(f) as fixture_file:
+                    with open(f, 'r', encoding='utf-8') as fixture_file:
                         fixture = json.load(fixture_file)
                         key_name = f.split('/')[-1][:-5]
                         fixture_data[key_name] = fixture

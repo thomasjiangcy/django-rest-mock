@@ -26,7 +26,7 @@ class Variable(BaseFactory):
 
     def __init__(self, var_type, var_name, var_val):
         super().__init__()
-        with open(os.path.join(BASE_TEMPLATE_PATH, 'variable.template'), 'r', 'utf-8') as f:
+        with open(os.path.join(BASE_TEMPLATE_PATH, 'variable.template'), 'r', encoding='utf-8') as f:
             self.constructed = f.read()
         self.construct(var_type, var_name, var_val)
     
@@ -42,7 +42,7 @@ class ResponseBody(BaseFactory):
 
     def __init__(self, method):
         super().__init__()
-        with open(os.path.join(BASE_TEMPLATE_PATH, 'response.template'), 'r', 'utf-8') as f:
+        with open(os.path.join(BASE_TEMPLATE_PATH, 'response.template'), 'r', encoding='utf-8') as f:
             self.constructed = f.read()
         self.construct(method)
     
@@ -54,7 +54,7 @@ class Endpoint(BaseFactory):
 
     def __init__(self):
         super().__init__()
-        with open(os.path.join(BASE_TEMPLATE_PATH, 'endpoint.template'), 'r', 'utf-8') as f:
+        with open(os.path.join(BASE_TEMPLATE_PATH, 'endpoint.template'), 'r', encoding='utf-8') as f:
             self.constructed = f.read()
         self.uri = None
 

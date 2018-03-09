@@ -8,7 +8,7 @@ from jsmin import jsmin
 class ExpressServer:
 
     def __init__(self):
-        with open(os.path.dirname(__file__) + '/templates/express.template', 'r') as express_template:
+        with open(os.path.dirname(__file__) + '/templates/express.template', 'r', encoding='utf-8') as express_template:
             self.template = express_template.read()
         self.constructed = ''
 
@@ -30,7 +30,7 @@ class ExpressServer:
         )
 
     def _generate(self, file_path, no_minify):
-        with open(file_path, 'w') as f:
+        with open(file_path, 'w', encoding='utf-8') as f:
             # if we are, by chance, opening an existing index.js file - we want to remove everything first
             f.truncate()
             if no_minify:

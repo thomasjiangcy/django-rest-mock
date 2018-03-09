@@ -9,22 +9,22 @@ BASE_PATH = os.path.dirname(__file__) + '/js/'
 
 
 def data_finder():
-    with open(BASE_PATH + 'datafinder.js', 'r') as datafinder:
+    with open(BASE_PATH + 'datafinder.js', 'r', encoding='utf-8') as datafinder:
         func = datafinder.read()
         return func
 
 def get_handler():
-    with open(BASE_PATH + 'gethandler.js', 'r') as gethandler:
+    with open(BASE_PATH + 'gethandler.js', 'r', encoding='utf-8') as gethandler:
         func = gethandler.read()
         return func
 
 def modify_handler():
-    with open(BASE_PATH + 'modifyhandler.js', 'r') as modifyhandler:
+    with open(BASE_PATH + 'modifyhandler.js', 'r', encoding='utf-8') as modifyhandler:
         func = modifyhandler.read()
         return func
 
 def post_handler():
-    with open(BASE_PATH + 'posthandler.js', 'r') as posthandler:
+    with open(BASE_PATH + 'posthandler.js', 'r', encoding='utf-8') as posthandler:
         func = posthandler.read()
         return func
 
