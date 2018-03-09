@@ -8,7 +8,7 @@ from .core.express import ExpressServer
 from .core.extractor import Extractor
 from .core.functions import DATA_FINDER, GET_HANDLER, MODIFY_HANDLER, POST_HANDLER
 from .core.parser import Parser
-from .core.structures import Endpoint, Variable
+from .core.structures import Endpoint, ResponseBody, Variable
 
 
 def get_store(url_details):
@@ -19,7 +19,12 @@ def get_store(url_details):
     store = {}
     for detail in url_details:
         base_url = detail['url'].strip()
+
+        # If a url detail has instances, it means that
+        # we want to also create an endpoint that can list
+        # all of the instances
         has_instances = False
+
         try:
             if len(detail['response']) > 1:
                 if '__key' in detail['full_url']:
@@ -44,14 +49,14 @@ def get_store(url_details):
                             has_instances = True
                         elif parsed_resp['__key_position'] == 'query':
                             unique_key = parsed_resp['__key_name']
-                            if not base_url[-1] == '/':
+                            if not base_url.endswith('/'):
                                 url_with_slash = base_url + '/'
                             constructed_url = url_with_slash + '__pk/' + str(parsed_resp[unique_key])
                             constructed_url = re.sub(r'\_\_key', '', constructed_url)  # if '__key' hasn't already been replaced, remove it
                             store[constructed_url] = {
                                 'data': cleaned_resp,
                                 'pk': True,
-                                'pkName': parsed_resp['__key_name'],
+                                'pkName': unique_key,
                                 'position': 'query',
                                 'options': parsed_resp.get('__options', '{}')
                             }
@@ -87,6 +92,31 @@ def get_store(url_details):
                     }
 
             else:
+                # If the length of the response is not more than 1
+                # Check if unique key is a dynamic key
+                if isinstance(detail['response'], list) and len(detail['response']) == 1:
+                    response = ast.literal_eval(detail['response'][0])
+                    if response['__key_name'] is not None and response['__key_name'].startswith('*'):
+                        for k, v in response.items():
+                            if k.startswith('__') or k.startswith('--'):
+                                continue
+                            unique_key = k
+                            if response['__key_position'] == 'query':
+                                if not base_url.endswith('/'):
+                                    url_with_slash = base_url + '/'
+                                constructed_url = url_with_slash + '__pk/' + str(unique_key)
+                                constructed_url = re.sub(r'\_\_key', '', constructed_url)
+                            else:
+                                constructed_url = re.sub(r'\_\_key', str(unique_key), base_url)
+                            store[constructed_url] = {
+                                'data': v,
+                                'pk': True,
+                                'parentName': unique_key,
+                                'pkName': response['__key_name'][1:],
+                                'position': response['__key_position'],
+                                'options': parsed_resp.get('__options', '{}')
+                            }
+                        has_instances = True
                 base_url = re.sub(r'\/?\_\_key', '', base_url)  # if '__key' hasn't already been replaced, remove it
                 parsed_resp = ast.literal_eval(detail['response'][0])
                 tmp_copy_resp = deepcopy(parsed_resp)
@@ -145,6 +175,14 @@ def clean_url(full_url, store, method):
 
 
 def build(port=8000, fixtures=None):
+    """
+    Builds a server file.
+
+    1. Extract mock response details from all valid docstrings in existing views
+    2. Parse and generate mock values
+    3. Create a store of all endpoints and data
+    4. Construct server file
+    """
     extractor = Extractor()
     parser = Parser(extractor.url_details, fixtures)
     parser.parse()
@@ -161,7 +199,7 @@ def build(port=8000, fixtures=None):
             method = u['method'].lower()
         else:
             method = 'modify'
-        response = "const data = {}Handler(req);res.json(data);".format(method)
+        response = str(ResponseBody(method))
 
         # Check in store if the base url has individual instances
         u['url'], list_url = clean_url(u['full_url'], _store, u['method'].lower())

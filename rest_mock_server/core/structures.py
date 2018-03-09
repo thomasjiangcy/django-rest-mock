@@ -1,24 +1,33 @@
+import os
 import re
+
+
+BASE_TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), 'templates')
+
 
 class BaseFactory:
 
     def __init__(self):
         self.constructed = ''
         self.options = dict(strip=True, remove_space=True, strip_newline=False, strip_tab=False)
-        self.is_constructed = False
 
     def __str__(self):
         if self.is_constructed:
             return self.constructed
         else:
             raise Exception('Need to call construct() first')
+    
+    @property
+    def is_constructed(self):
+        return bool(self.constructed)
 
 
 class Variable(BaseFactory):
 
     def __init__(self, var_type, var_name, var_val):
         super().__init__()
-        self.constructed = "%s %s = %s;"
+        with open(os.path.join(BASE_TEMPLATE_PATH, 'variable.template'), 'r', encoding='utf-8') as f:
+            self.constructed = f.read()
         self.construct(var_type, var_name, var_val)
     
     def construct(self, var_type, var_name, var_val):
@@ -27,29 +36,26 @@ class Variable(BaseFactory):
             var_name,
             var_val
         )
-        self.is_constructed = True
 
 
-class Function(BaseFactory):
+class ResponseBody(BaseFactory):
 
-    def __init__(self):
+    def __init__(self, method):
         super().__init__()
-        self.constructed = "function %s(%s) {%s};"
-
-    def construct(self, name, args, body):
-        self.constructed = self.constructed % (
-            name,
-            args,
-            body
-        )
-        self.is_constructed = True
+        with open(os.path.join(BASE_TEMPLATE_PATH, 'response.template'), 'r', encoding='utf-8') as f:
+            self.constructed = f.read()
+        self.construct(method)
+    
+    def construct(self, method):
+        self.constructed = self.constructed % method
 
 
 class Endpoint(BaseFactory):
 
     def __init__(self):
         super().__init__()
-        self.constructed = 'app.%s("%s", (req, res) => {%s});\n'
+        with open(os.path.join(BASE_TEMPLATE_PATH, 'endpoint.template'), 'r', encoding='utf-8') as f:
+            self.constructed = f.read()
         self.uri = None
 
     def construct(self, method, uri, response):
@@ -58,4 +64,3 @@ class Endpoint(BaseFactory):
             uri = cleaned_uri[0]
         self.constructed = self.constructed % (method, uri, response)
         self.uri = uri
-        self.is_constructed = True
