@@ -25,9 +25,16 @@ class Command(BaseCommand):
             dest='fixtures',
             help='Directory where fixtures can be extracted from'
         )
+        parser.add_argument(
+            '--no-minify',
+            action='store_true',
+            dest='no_minify',
+            help='Don\'t minify the output server file'
+        )
 
     def handle(self, *args, **options):
         server_file = options.get('server_file')
+        no_minify = options.get('no_minify')
         if server_file is None:
             server_file = 'index.js'
             port = options.get('port')
@@ -37,7 +44,7 @@ class Command(BaseCommand):
             if fixtures is not None:
                 fixtures = fixtures.split(',')
             express = build(port, fixtures)
-            express.generate(file_path=server_file)
+            express.generate(file_path=server_file, no_minify=no_minify)
             express.start_server(file_path=server_file)
         else:
             express = ExpressServer()

@@ -29,11 +29,27 @@ class ExpressServer:
             port
         )
 
-    def generate(self, file_path='index.js', no_minify=False):
+    def _generate(self, file_path, no_minify):
         with open(file_path, 'w') as f:
+            # if we are, by chance, opening an existing index.js file - we want to remove everything first
+            f.truncate()
             if no_minify:
                 f.write(self.to_string())
+                return
             f.write(jsmin(self.to_string()).replace('\n', ''))
+
+    def generate(self, file_path='index.js', no_minify=False):
+        if os.path.isfile(file_path):
+            file_exists_override = ''
+            while file_exists_override.lower() not in ['y', 'n']:
+                file_exists_override = input('File "{}" exists. This will overwrite all contents in the file, continue? [y/n]'.format(file_path))
+            if file_exists_override.lower() == 'y':
+                self._generate(file_path, no_minify)
+            else:
+                print('Cancelling operation.')
+                sys.exit(0)
+        else:
+            self._generate(file_path, no_minify)
 
     def start_server(self, file_path='index.js'):
         # Check if node is installed
