@@ -1,0 +1,2 @@
+const data = {}Handler(req);
+res.json(data);

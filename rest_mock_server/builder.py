@@ -8,7 +8,7 @@ from .core.express import ExpressServer
 from .core.extractor import Extractor
 from .core.functions import DATA_FINDER, GET_HANDLER, MODIFY_HANDLER, POST_HANDLER
 from .core.parser import Parser
-from .core.structures import Endpoint, Variable
+from .core.structures import Endpoint, ResponseBody, Variable
 
 
 def get_store(url_details):
@@ -19,7 +19,12 @@ def get_store(url_details):
     store = {}
     for detail in url_details:
         base_url = detail['url'].strip()
+
+        # If a url detail has instances, it means that
+        # we want to also create an endpoint that can list
+        # all of the instances
         has_instances = False
+
         try:
             if len(detail['response']) > 1:
                 if '__key' in detail['full_url']:
@@ -87,6 +92,7 @@ def get_store(url_details):
                     }
 
             else:
+                # If the length of the response is not more than 1
                 # Check if unique key is a dynamic key
                 if isinstance(detail['response'], list) and len(detail['response']) == 1:
                     response = ast.literal_eval(detail['response'][0])
@@ -169,6 +175,14 @@ def clean_url(full_url, store, method):
 
 
 def build(port=8000, fixtures=None):
+    """
+    Builds a server file.
+
+    1. Extract mock response details from all valid docstrings in existing views
+    2. Parse and generate mock values
+    3. Create a store of all endpoints and data
+    4. Construct server file
+    """
     extractor = Extractor()
     parser = Parser(extractor.url_details, fixtures)
     parser.parse()
@@ -185,7 +199,7 @@ def build(port=8000, fixtures=None):
             method = u['method'].lower()
         else:
             method = 'modify'
-        response = "const data = {}Handler(req);res.json(data);".format(method)
+        response = str(ResponseBody(method))
 
         # Check in store if the base url has individual instances
         u['url'], list_url = clean_url(u['full_url'], _store, u['method'].lower())
