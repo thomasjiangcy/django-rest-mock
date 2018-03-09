@@ -5,16 +5,20 @@ from setuptools import setup, find_packages
 here = os.path.abspath(os.path.dirname(__file__))
 README = open(os.path.join(here, 'README.rst')).read()
 
+about = {}
+with open(os.path.join(here, 'rest_mock_server', '__version__.py'), 'r', 'utf-8') as f:
+    exec(f.read(), about)
+
 setup(
-    name='django-rest-mock',
-    version='0.2.7',
+    name=about['__title__'],
+    version=about['__version__'],
     packages=find_packages(),
-    description='Mock Express server generated based on your views, that can come in handy when developing REST APIs with Django',
+    description=about['__description__'],
     long_description=README,
-    author='Thomas Jiang',
-    author_email='thomasjiangcy@gmail.com',
-    url='https://github.com/thomasjiangcy/django-rest-mock-server',
-    license='MIT',
+    author=about['__author__'],
+    author_email=about['__author_email__'],
+    url=about['__url__'],
+    license=about['__license__'],
     install_requires=[
         'Django>=1.11',
         'Faker>=0.8.11',
