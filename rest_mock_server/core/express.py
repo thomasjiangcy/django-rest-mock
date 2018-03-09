@@ -6,18 +6,8 @@ import sys
 class ExpressServer:
 
     def __init__(self):
-        self.template = """
-const express = require("express");
-const cors = require("cors");
-const bodyParser = require('body-parser');
-const app = express();
-app.use(cors());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-%s
-%s
-%s
-app.listen(%s, () => console.log("Django Rest Mock Server: Listening on port %s"));""".strip()
+        with open(os.path.dirname(__file__) + '/templates/express.template', 'r') as express_template:
+            self.template = express_template.read()
         self.constructed = ''
 
     def __str__(self):

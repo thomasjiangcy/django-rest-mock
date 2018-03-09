@@ -4,30 +4,28 @@ Core functions to be placed in Express Server
 
 import os
 
-from jsmin import jsmin
 
-
-BASE_PATH = os.path.dirname(__file__) + '/__functions__/'
+BASE_PATH = os.path.dirname(__file__) + '/js/'
 
 
 def data_finder():
     with open(BASE_PATH + 'datafinder.js', 'r') as datafinder:
-        func = jsmin(datafinder.read())
+        func = datafinder.read()
         return func
 
 def get_handler():
     with open(BASE_PATH + 'gethandler.js', 'r') as gethandler:
-        func = jsmin(gethandler.read())
+        func = gethandler.read()
         return func
 
 def modify_handler():
     with open(BASE_PATH + 'modifyhandler.js', 'r') as modifyhandler:
-        func = jsmin(modifyhandler.read())
+        func = modifyhandler.read()
         return func
 
 def post_handler():
     with open(BASE_PATH + 'posthandler.js', 'r') as posthandler:
-        func = jsmin(posthandler.read())
+        func = posthandler.read()
         return func
 
 DATA_FINDER = data_finder()
